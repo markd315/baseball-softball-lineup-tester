@@ -5,21 +5,26 @@ import math
 #import numpy
 
 innings = 9
-statsBase = { #2020 MLB Orioles (middling offensive team with weak home park effects)
-	'pa': 2217,
-	'bb': 164,
-	'hbp': 27, #treated as a BB by the simulation
-	'ba': .258,
-	'obp': .321,
-	'slg': .429,
-	'2b': 102,
-	'3b': 7,
-	"4b": 77
+statsBase = { #2020 stats https://www.baseball-reference.com/leagues/MLB/bat.shtml
+	'pa': 37.03,
+	'bb': 3.39,
+	'hbp': .46, #treated as a BB by the simulation
+	'ba': .245,
+	'obp': .322,
+	'slg': .418,
+	'2b': 1.57,
+	'3b': 0.13,
+	"4b": 1.28
 }
-sample = 10000
+sample = 30000
 runsAllowed=4.59 # grabbed median from here https://www.teamrankings.com/mlb/stat/runs-per-game?date=2020-10-28
 doublePlayRatioOnOutsWhenRunnerOnFirst=.17 #No source for this. Wild guess.
+
+
+
+
 statsBase['ab'] =statsBase['pa'] - statsBase['hbp'] - statsBase['bb']
+statsBase['hits']=statsBase['ab']*statsBase['ba']
 onbasect = statsBase['pa'] * statsBase['obp']
 statsBase['walkPerc'] = (statsBase['bb']+statsBase['hbp']) / onbasect
 
@@ -56,13 +61,15 @@ def loadSequential():
 
 def determineHitType(player):
 	#Assumes doubles,triples,HR contribute to slg in same proportions same as in statbase
-	doublesPercent = statsBase['2b'] / statsBase['ab']
-	doublesContribution = doublesPercent * player.slg / statsBase['slg'] 
-	triplesPercent = statsBase['3b'] / statsBase['ab']
-	triplesContribution = triplesPercent * player.slg / statsBase['slg']
-	hrPercent = statsBase['4b'] / statsBase['ab']
-	hrContribution = hrPercent * player.slg / statsBase['slg']
-	
+	averageExtraBases = player.slg - player.ba
+	extraBasesScalar = averageExtraBases / (statsBase['slg'] - statsBase['ba'])
+	leaguewideDoublesPercent = statsBase['2b'] / statsBase['hits']
+	doublesContribution = leaguewideDoublesPercent * extraBasesScalar
+	leaguewideTriplesPercent = statsBase['3b'] / statsBase['hits']
+	triplesContribution = leaguewideTriplesPercent * extraBasesScalar
+	leaguewideHrPercent = statsBase['4b'] / statsBase['hits']
+	hrContribution = leaguewideHrPercent * extraBasesScalar
+
 	rng = random.uniform(0,1)
 	if(rng > hrContribution + triplesContribution + doublesContribution):
 		return "1"
